@@ -1,0 +1,40 @@
+global PROCESSPATH = "mysqld"
+global filename_by_fd
+
+probe begin {
+    printf("---- started ----\n")
+}
+
+probe end {
+    printf("---- ended ----\n")
+}
+
+probe syscall.open.return {
+    if (execname() == PROCESSPATH) {
+        filename = user_string($filename)
+        if ($return != -1) {
+          filename_by_fd[$return] = filename
+        }
+    }
+}
+
+probe syscall.read, syscall.pread {
+    if (execname() == PROCESSPATH) {
+        printf("arg: %s\n", argstr)
+        printf("---- filename: [%s] is read ----\n", filename_by_fd[$fd]) 
+        print_backtrace()
+        print_ustack(ubacktrace())
+        printf("-----------------------------------\n")
+    }
+}
+
+probe syscall.write, syscall.pwrite {
+    if (execname() == PROCESSPATH) {
+        printf("arg: %s\n", argstr)
+        printf("---- filename: [%s] is written ----\n", filename_by_fd[$fd]) 
+        print_backtrace()
+        print_ustack(ubacktrace())
+        printf("-----------------------------------\n")
+    }
+}
+
